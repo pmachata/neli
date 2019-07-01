@@ -58,9 +58,9 @@
 extern crate buffering;
 extern crate byteorder;
 extern crate libc;
-#[cfg(feature = "stream")]
+#[cfg(feature = "async")]
 extern crate mio;
-#[cfg(feature = "stream")]
+#[cfg(feature = "async")]
 extern crate tokio;
 
 /// C constants defined as types
