@@ -87,8 +87,7 @@ mod utils;
 use std::{
     ffi::CString,
     io::{Read, Write},
-    mem,
-    str,
+    mem, str,
 };
 
 pub use buffering::{StreamReadBuffer, StreamWriteBuffer};

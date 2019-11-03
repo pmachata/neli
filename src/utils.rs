@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Deref, BitOr, Sub, SubAssign};
+use std::ops::{AddAssign, BitOr, Deref, Sub, SubAssign};
 
 /// Struct representing a single bit flag
 pub struct U32BitFlag(u32);

@@ -79,11 +79,7 @@ where
     P: Nl,
 {
     /// Create new netlink stream
-    pub fn new(
-        proto: NlFamily,
-        pid: Option<u32>,
-        groups: U32Bitmask,
-    ) -> Result<Self, io::Error> {
+    pub fn new(proto: NlFamily, pid: Option<u32>, groups: U32Bitmask) -> Result<Self, io::Error> {
         Ok(NetlinkStream {
             sock: tokio::NlSocket::new(NlSocket::connect(proto, pid, groups)?)?,
             pid,
