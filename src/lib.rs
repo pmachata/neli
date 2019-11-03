@@ -69,6 +69,8 @@ pub mod consts;
 pub mod err;
 /// Genetlink (generic netlink) header and attribute helpers
 pub mod genl;
+mod neli_constants;
+/// Nflog protocol (logging for netfilter)
 pub mod netfilter;
 /// Top-level netlink header
 pub mod nl;
@@ -80,20 +82,23 @@ pub mod rtnl;
 pub mod socket;
 /// Module for high level stream interface
 pub mod stream;
+mod utils;
 
-use std::ffi::CString;
-use std::io::{Read, Write};
-use std::mem;
-use std::str;
+use std::{
+    ffi::CString,
+    io::{Read, Write},
+    mem,
+    str,
+};
 
 pub use buffering::{StreamReadBuffer, StreamWriteBuffer};
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 
-use consts::alignto;
-use err::{DeError, SerError};
-
-/// Max supported message length for netlink messages supported by the kernel
-pub const MAX_NL_LENGTH: usize = 32768;
+use crate::{
+    consts::alignto,
+    err::{DeError, SerError},
+};
+pub use neli_constants::MAX_NL_LENGTH;
 
 /// Trait defining basic actions required for netlink communication.
 /// Implementations for basic and `neli`'s types are provided (see below). Create new

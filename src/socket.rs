@@ -20,24 +20,36 @@
 //! There are methods for blocking and non-blocking, resolving generic netlink multicast group IDs,
 //! and other convenience functions so see if your use case is supported. If it isn't, please open
 //! a Github issue and submit a feature request.
+//!
+//! ## Design decisions
+//!
+//! The buffer allocated in the `NlSocket` structure should
+//! be allocated on the heap. This is intentional as a buffer
+//! that large could be a problem on the stack. Big thanks to
+//! @vorner for the suggestion on how to minimize allocations.
 
-use std::io;
-use std::marker::PhantomData;
-use std::mem::{size_of, zeroed};
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
+use std::{
+    io,
+    marker::PhantomData,
+    mem::{size_of, zeroed},
+    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+};
 
 use buffering::{StreamReadBuffer, StreamWriteBuffer};
 use libc::{self, c_int, c_void};
 
-use consts::{
-    self, AddrFamily, CtrlAttr, CtrlAttrMcastGrp, CtrlCmd, GenlId, Index, NlAttrType, NlFamily,
-    NlType, NlmF, Nlmsg,
+use crate::{
+    consts::{
+        self, AddrFamily, CtrlAttr, CtrlAttrMcastGrp, CtrlCmd, GenlId, Index, NlAttrType, NlFamily,
+        NlType, NlmF, Nlmsg,
+    },
+    err::{NlError, Nlmsgerr},
+    genl::Genlmsghdr,
+    nl::Nlmsghdr,
+    nlattr::Nlattr,
+    utils::U32Bitmask,
+    Nl, MAX_NL_LENGTH,
 };
-use err::{NlError, Nlmsgerr};
-use genl::Genlmsghdr;
-use nl::Nlmsghdr;
-use nlattr::Nlattr;
-use {Nl, MAX_NL_LENGTH};
 
 /// Iterator over messages returned from a `recv_nl` call
 pub struct NlMessageIter<'a, T, P> {
@@ -74,25 +86,6 @@ where
             Err(e) => Some(Err(e)),
         }
     }
-}
-
-/// Conversion between multicast group IDs and the bitmask representation expected by the kernel
-#[inline]
-pub fn vec_to_bitmask(groups: Vec<u32>) -> u32 {
-    groups.iter().fold(0, |acc, grp| acc | (1 << (grp - 1)))
-}
-
-/// Conversion between multicast group IDs and the bitmask expected by the kernel
-#[inline]
-pub fn bitmask_to_vec(mask: u32) -> Vec<u32> {
-    let mut vec = Vec::new();
-    // Number of bits in a u32
-    for i in 1..=size_of::<u32>() * 8 {
-        if (1 << (i - 1)) & mask != 0 {
-            vec.push(i as u32);
-        }
-    }
-    vec
 }
 
 /// Handle for the socket file descriptor
@@ -158,7 +151,7 @@ impl NlSocket {
     /// * `None` means checking is off.
     /// * `Some(0)` turns checking on, but takes the PID from the first received message.
     /// * `Some(pid)` uses the given PID.
-    pub fn bind(&mut self, pid: Option<u32>, groups: Option<Vec<u32>>) -> Result<(), io::Error> {
+    pub fn bind(&mut self, pid: Option<u32>, groups: U32Bitmask) -> Result<(), io::Error> {
         let mut nladdr = unsafe { zeroed::<libc::sockaddr_nl>() };
         nladdr.nl_family = libc::c_int::from(AddrFamily::Netlink) as u16;
         nladdr.nl_pid = pid.unwrap_or(0);
@@ -173,27 +166,26 @@ impl NlSocket {
             i if i >= 0 => (),
             _ => return Err(io::Error::last_os_error()),
         };
-        if let Some(grps) = groups {
-            self.add_mcast_membership(grps)?;
+        if !groups.is_empty() {
+            self.add_mcast_membership(groups)?;
         }
         Ok(())
     }
 
     /// Set multicast groups for socket
     #[deprecated(since = "0.5.0", note = "Use add_multicast_membership instead")]
-    pub fn set_mcast_groups(&mut self, groups: Vec<u32>) -> Result<(), io::Error> {
+    pub fn set_mcast_groups(&mut self, groups: U32Bitmask) -> Result<(), io::Error> {
         self.add_mcast_membership(groups)
     }
 
     /// Join multicast groups for a socket
-    pub fn add_mcast_membership(&mut self, groups: Vec<u32>) -> Result<(), io::Error> {
-        let grps = vec_to_bitmask(groups);
+    pub fn add_mcast_membership(&mut self, groups: U32Bitmask) -> Result<(), io::Error> {
         match unsafe {
             libc::setsockopt(
                 self.fd,
                 libc::SOL_NETLINK,
                 libc::NETLINK_ADD_MEMBERSHIP,
-                &grps as *const _ as *const libc::c_void,
+                &*groups as *const _ as *const libc::c_void,
                 size_of::<u32>() as libc::socklen_t,
             )
         } {
@@ -203,14 +195,13 @@ impl NlSocket {
     }
 
     /// Leave multicast groups for a socket
-    pub fn drop_mcast_membership(&mut self, groups: Vec<u32>) -> Result<(), io::Error> {
-        let grps = vec_to_bitmask(groups);
+    pub fn drop_mcast_membership(&mut self, groups: U32Bitmask) -> Result<(), io::Error> {
         match unsafe {
             libc::setsockopt(
                 self.fd,
                 libc::SOL_NETLINK,
                 libc::NETLINK_DROP_MEMBERSHIP,
-                &grps as *const _ as *const libc::c_void,
+                &*groups as *const _ as *const libc::c_void,
                 size_of::<u32>() as libc::socklen_t,
             )
         } {
@@ -220,7 +211,7 @@ impl NlSocket {
     }
 
     /// List joined groups for a socket
-    pub fn list_mcast_membership(&mut self) -> Result<Vec<u32>, io::Error> {
+    pub fn list_mcast_membership(&mut self) -> Result<U32Bitmask, io::Error> {
         let mut grps = 0u32;
         let mut len = size_of::<u32>() as libc::socklen_t;
         match unsafe {
@@ -232,7 +223,7 @@ impl NlSocket {
                 &mut len as *mut _ as *mut libc::socklen_t,
             )
         } {
-            i if i == 0 => Ok(bitmask_to_vec(grps)),
+            i if i == 0 => Ok(U32Bitmask::from(grps)),
             _ => Err(io::Error::last_os_error()),
         }
     }
@@ -278,7 +269,7 @@ impl NlSocket {
     pub fn connect(
         proto: NlFamily,
         pid: Option<u32>,
-        groups: Option<Vec<u32>>,
+        groups: U32Bitmask,
     ) -> Result<Self, io::Error> {
         let mut s = NlSocket::new(proto)?;
         s.bind(pid, groups)?;

@@ -4,6 +4,7 @@
 ### Breaking changes
 * Change `stream` feature to `async` for clarity with higher level API
 * Move `seq` and `pid` tracking to higher level APIs for better support case by case
+* Make `NlSocket::send`/`::recv` take an immutable reference due to the case made for message vs. stream based sockets
 
 ### Additions
 * NFLOG support, in the `netfilter` module.
@@ -14,6 +15,9 @@
 ### Deprecations
 * `Nlattr.get_nested_attributes()` in favor of `.get_attr_handle()`
 * `NlSocket.set_mcast_groups()` in favor of `.add_multicast_membership()`
+
+### Bug fixes
+* Bug fixes for rtnetlink
 
 ## 0.4.3
 ### Breaking changes
