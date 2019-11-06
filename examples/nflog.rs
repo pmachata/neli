@@ -10,16 +10,20 @@
 //! Both this example and the above command needs to be run as root.
 extern crate neli;
 
-use neli::consts::netfilter::{LogCmd, LogCopyMode, NetfilterMsg, NfLogCfg};
-use neli::consts::{NlFamily, NlmF};
-use neli::netfilter::{LogConfigMode, LogConfigReq, LogPacket};
-use neli::nl::Nlmsghdr;
-use neli::nlattr::Nlattr;
-use neli::socket::NlSocket;
+use neli::{
+    consts::netfilter::{LogCmd, LogCopyMode, NetfilterMsg, NfLogCfg},
+    consts::nl::NlmF,
+    consts::socket::NlFamily,
+    netfilter::{LogConfigMode, LogConfigReq, LogPacket},
+    nl::Nlmsghdr,
+    nlattr::Nlattr,
+    socket::NlSocket,
+    U32Bitmask,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // First, let's create a socket to the netfilter.
-    let mut socket = NlSocket::connect(NlFamily::Netfilter, None, None, false)?;
+    let mut socket = NlSocket::connect(NlFamily::Netfilter, None, U32Bitmask::empty())?;
 
     // Then, ask the kernel to send the relevant packets into it. Unfortunately, the documentation
     // of the functionality is kind of sparse, so there are some unknowns, like why do we have to

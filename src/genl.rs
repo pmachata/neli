@@ -110,10 +110,14 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use std::io::{Cursor, Write};
+
     use byteorder::{NativeEndian, WriteBytesExt};
+
     use consts::{CtrlAttr, CtrlCmd, NlFamily};
     use socket::NlSocket;
-    use std::io::{Cursor, Write};
+    use utils::U32Bitmask;
 
     #[test]
     pub fn test_serialize() {
@@ -166,7 +170,7 @@ mod test {
     #[test]
     #[ignore]
     pub fn test_resolve_genl_family() {
-        let mut s = NlSocket::connect(NlFamily::Generic, None, None).unwrap();
+        let mut s = NlSocket::connect(NlFamily::Generic, None, U32Bitmask::empty()).unwrap();
         let id = s.resolve_genl_family("acpi_event").unwrap();
         assert_eq!(23, id)
     }
@@ -174,7 +178,7 @@ mod test {
     #[test]
     #[ignore]
     pub fn test_resolve_mcast_group() {
-        let mut s = NlSocket::connect(NlFamily::Generic, None, None).unwrap();
+        let mut s = NlSocket::connect(NlFamily::Generic, None, U32Bitmask::empty()).unwrap();
         let id = s
             .resolve_nl_mcast_group("acpi_event", "acpi_mc_group")
             .unwrap();

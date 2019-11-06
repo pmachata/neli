@@ -94,7 +94,10 @@ try_err_compat!(NlError, io::Error, SerError, DeError);
 
 impl NlError {
     /// Create new error from `&str`
-    pub fn new(s: &str) -> Self {
+    pub fn new<D>(s: D) -> Self
+    where
+        D: Display,
+    {
         NlError::Msg(s.to_string())
     }
 }

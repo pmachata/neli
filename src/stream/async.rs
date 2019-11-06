@@ -30,7 +30,17 @@ impl NetlinkStreamConnector {
         mcast_group: &str,
     ) -> Result<&mut Self, NlError> {
         let group_num = self.sock.resolve_nl_mcast_group(family, mcast_group)?;
-        self.mcast_ids += U32BitFlag::new(group_num);
+        let flag = match U32BitFlag::new(group_num) {
+            Ok(f) => f,
+            Err(_) => {
+                return Err(NlError::new(
+                    "You have hit a bug - \
+                     the group number that was returned is larger than what can \
+                     be represented by a u32 bitmask",
+                ))
+            }
+        };
+        self.mcast_ids += flag;
         Ok(self)
     }
 
@@ -41,7 +51,17 @@ impl NetlinkStreamConnector {
         mcast_group: &str,
     ) -> Result<&mut Self, NlError> {
         let group_num = self.sock.resolve_nl_mcast_group(family, mcast_group)?;
-        self.mcast_ids -= U32BitFlag::new(group_num);
+        let flag = match U32BitFlag::new(group_num) {
+            Ok(f) => f,
+            Err(_) => {
+                return Err(NlError::new(
+                    "You have hit a bug - \
+                     the group number that was returned is larger than what can \
+                     be represented by a u32 bitmask",
+                ))
+            }
+        };
+        self.mcast_ids -= flag;
         Ok(self)
     }
 

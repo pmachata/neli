@@ -1,13 +1,45 @@
-use std::ops::{AddAssign, BitOr, Deref, Sub, SubAssign};
+use std::{
+    error::Error,
+    fmt::{self, Display},
+    ops::{AddAssign, BitOr, Deref, Sub, SubAssign},
+};
+
+#[derive(Debug)]
+pub struct BitRepError(String);
+
+impl BitRepError {
+    fn new<D>(message: D) -> Self
+    where
+        D: Display,
+    {
+        BitRepError(message.to_string())
+    }
+}
+
+impl Error for BitRepError {}
+
+impl Display for BitRepError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Struct representing a single bit flag
 pub struct U32BitFlag(u32);
 
 impl U32BitFlag {
-    pub fn new(bit_num: u32) -> Self {
-        U32BitFlag(bit_num)
+    /// Create a new bitflag from which bit number to set
+    pub fn new(bit_num: u32) -> Result<Self, BitRepError> {
+        if bit_num > 32 {
+            return Err(BitRepError::new(
+                "You specified a bit beyond the 32 bit \
+                 representation of a u32",
+            ));
+        }
+        Ok(U32BitFlag(bit_num))
     }
 
+    /// Convert this bitflag into a bitmask with only this bit set
     fn into_bitmask(self) -> U32Bitmask {
         U32Bitmask::from(num_to_set_mask(self.0))
     }
@@ -17,15 +49,22 @@ impl U32BitFlag {
 pub struct U32Bitmask(u32);
 
 impl U32Bitmask {
+    /// Create an empty bitmask
     pub fn empty() -> Self {
         U32Bitmask(0)
     }
 
+    /// Return `true` if the bitmask is empty
     pub fn is_empty(&self) -> bool {
         self.0 == 0
     }
 
+    /// Check if the bit at position `bit` is set - returns false for anything
+    /// larger than 32 as that extends past the boundaries of a 32 bit integer bitmask
     pub fn is_set(&self, bit: u32) -> bool {
+        if bit > 32 {
+            return false;
+        }
         let set_mask = num_to_set_mask(bit);
         set_mask & self.0 == set_mask
     }
@@ -44,6 +83,14 @@ impl BitOr<U32BitFlag> for U32Bitmask {
 
     fn bitor(self, rhs: U32BitFlag) -> Self::Output {
         self | rhs.into_bitmask()
+    }
+}
+
+impl BitOr<U32Bitmask> for U32BitFlag {
+    type Output = U32Bitmask;
+
+    fn bitor(self, rhs: U32Bitmask) -> Self::Output {
+        self.into_bitmask() | rhs
     }
 }
 

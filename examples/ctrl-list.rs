@@ -1,12 +1,13 @@
 extern crate neli;
-use neli::consts::{CtrlAttr, CtrlCmd, GenlId, NlFamily, NlmF, Nlmsg};
-use neli::err::NlError;
-use neli::genl::Genlmsghdr;
-use neli::nl::Nlmsghdr;
-use neli::nlattr::Nlattr;
-use neli::socket::NlSocket;
-use neli::Nl;
-use neli::StreamReadBuffer;
+use neli::{
+    consts::{CtrlAttr, CtrlCmd, GenlId, NlFamily, NlmF, Nlmsg},
+    err::NlError,
+    genl::Genlmsghdr,
+    nl::Nlmsghdr,
+    nlattr::Nlattr,
+    socket::NlSocket,
+    Nl, StreamReadBuffer, U32Bitmask,
+};
 
 const GENL_VERSION: u8 = 2;
 
@@ -14,7 +15,7 @@ const GENL_VERSION: u8 = 2;
 // the name and identifier of each generic netlink family.
 
 fn main() -> Result<(), NlError> {
-    let mut socket = NlSocket::connect(NlFamily::Generic, None, None)?;
+    let mut socket = NlSocket::connect(NlFamily::Generic, None, U32Bitmask::empty())?;
 
     let attrs: Vec<Nlattr<CtrlAttr, Vec<u8>>> = vec![];
     let genlhdr = Genlmsghdr::new(CtrlCmd::Getfamily, GENL_VERSION, attrs)?;

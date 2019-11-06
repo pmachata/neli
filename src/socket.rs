@@ -597,7 +597,7 @@ mod test {
 
     #[test]
     fn test_socket_nonblock() {
-        let mut s = NlSocket::connect(NlFamily::Generic, None, None).unwrap();
+        let mut s = NlSocket::connect(NlFamily::Generic, None, U32Bitmask::empty()).unwrap();
         s.nonblock().unwrap();
         assert_eq!(s.is_blocking().unwrap(), false);
         let buf = &mut [0; 4];

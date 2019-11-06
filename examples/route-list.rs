@@ -3,11 +3,7 @@ extern crate neli;
 use std::error::Error;
 use std::net::IpAddr;
 
-use neli::consts::*;
-use neli::err::NlError;
-use neli::nl::Nlmsghdr;
-use neli::rtnl::*;
-use neli::socket::*;
+use neli::{consts::*, err::NlError, nl::Nlmsghdr, rtnl::*, socket::*, U32Bitmask};
 
 fn parse_route_table(rtm: Nlmsghdr<Rtm, Rtmsg>) {
     // This sample is only interested in the main table.
@@ -61,7 +57,7 @@ fn parse_route_table(rtm: Nlmsghdr<Rtm, Rtmsg>) {
 /// This sample is a simple imitation of the `ip route` command, to demonstrate interaction
 /// with the rtnetlink subsystem.  
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut socket = NlSocket::connect(NlFamily::Route, None, None).unwrap();
+    let mut socket = NlSocket::connect(NlFamily::Route, None, U32Bitmask::empty()).unwrap();
 
     let rtmsg = Rtmsg {
         rtm_family: RtAddrFamily::Inet,

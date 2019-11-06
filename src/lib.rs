@@ -97,7 +97,10 @@ use crate::{
     consts::alignto,
     err::{DeError, SerError},
 };
-pub use neli_constants::MAX_NL_LENGTH;
+pub use crate::{
+    neli_constants::MAX_NL_LENGTH,
+    utils::{U32BitFlag, U32Bitmask},
+};
 
 /// Trait defining basic actions required for netlink communication.
 /// Implementations for basic and `neli`'s types are provided (see below). Create new
