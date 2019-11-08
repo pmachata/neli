@@ -1,12 +1,23 @@
+use crate::{
+    consts::netfilter::{NfLogAttr, NfLogCfg},
+    Nl,
+};
+
 impl_trait!(
     /// Marker trait for types usable in `Nlattr.nla_type`
     NlAttrType,
-    u16
+    u16,
+    /// Wrapper that is usable with all values in `Nlattr.nla_type`
+    NlAttrTypeWrapper,
+    CtrlAttr,
+    CtrlAttrMcastGrp,
+    NfLogAttr,
+    NfLogCfg
 );
 
-impl_var_trait!(
+impl_var!(
     /// Values for `nla_type` in `Nlattr`
-    CtrlAttr, u16, NlAttrType,
+    CtrlAttr, u16,
     Unspec => libc::CTRL_ATTR_UNSPEC as u16,
     FamilyId => libc::CTRL_ATTR_FAMILY_ID as u16,
     FamilyName => libc::CTRL_ATTR_FAMILY_NAME as u16,
@@ -17,9 +28,9 @@ impl_var_trait!(
     McastGroups => libc::CTRL_ATTR_MCAST_GROUPS as u16
 );
 
-impl_var_trait!(
+impl_var!(
     /// Values for `nla_type` in `Nlattr`
-    CtrlAttrMcastGrp, u16, NlAttrType,
+    CtrlAttrMcastGrp, u16,
     Unspec => libc::CTRL_ATTR_MCAST_GRP_UNSPEC as u16,
     Name => libc::CTRL_ATTR_MCAST_GRP_NAME as u16,
     Id => libc::CTRL_ATTR_MCAST_GRP_ID as u16
@@ -41,7 +52,7 @@ impl From<u16> for Index {
     }
 }
 
-impl crate::Nl for Index {
+impl Nl for Index {
     fn serialize(&self, buf: &mut crate::StreamWriteBuffer) -> Result<(), crate::SerError> {
         self.0.serialize(buf)?;
         Ok(())

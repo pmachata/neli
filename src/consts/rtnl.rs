@@ -140,13 +140,20 @@ impl_var!(
 impl_trait!(
     /// Marker trait for `Rtattr.rta_type` field
     RtaType,
-    libc::c_ushort
+    libc::c_ushort,
+    /// Wrapper that is usable for all values in `Rtattr.rta_type`
+    RtaTypeWrapper,
+    Ifla,
+    Ifa,
+    Rta,
+    Tca,
+    Nda
 );
 
-impl_var_trait!(
+impl_var!(
     /// Enum for use with `Rtattr.rta_type`.
     /// Values are interface information message attributes. Used with `Ifinfomsg`.
-    Ifla, libc::c_ushort, RtaType,
+    Ifla, libc::c_ushort,
     Unspec => libc::IFLA_UNSPEC,
     Address => libc::IFLA_ADDRESS,
     Broadcast => libc::IFLA_BROADCAST,
@@ -157,10 +164,10 @@ impl_var_trait!(
     Stats => libc::IFLA_STATS
 );
 
-impl_var_trait!(
+impl_var!(
     /// Enum for use with `Rtattr.rta_type`.
     /// Values are interface address message attributes. Used with `Ifaddrmsg`.
-    Ifa, libc::c_ushort, RtaType,
+    Ifa, libc::c_ushort,
     Unspec => libc::IFA_UNSPEC,
     Address => libc::IFA_ADDRESS,
     Local => libc::IFA_LOCAL,
@@ -173,10 +180,10 @@ impl_var_trait!(
     Flags => libc::IFA_FLAGS
 );
 
-impl_var_trait!(
+impl_var!(
     /// Enum for use with `Rtattr.rta_type`.
     /// Values are routing message attributes. Used with `Rtmsg`.
-    Rta, libc::c_ushort, RtaType,
+    Rta, libc::c_ushort,
     Unspec => libc::RTA_UNSPEC,
     Dst => libc::RTA_DST,
     Src => libc::RTA_SRC,
@@ -215,10 +222,10 @@ impl_var_trait!(
     TtlPropagate => libc::RTA_TTL_PROPAGATE
 );
 
-impl_var_trait!(
+impl_var!(
     /// Enum for use with `Rtattr.rta_type` -
     /// Values specify queuing discipline attributes. Used with `Tcmsg`.
-    Tca, libc::c_ushort, RtaType,
+    Tca, libc::c_ushort,
     Unspec => libc::TCA_UNSPEC,
     Kind => libc::TCA_KIND,
     Options => libc::TCA_OPTIONS,
@@ -230,10 +237,10 @@ impl_var_trait!(
     Stab => libc::TCA_STAB
 );
 
-impl_var_trait!(
+impl_var!(
     /// Enum for use with `Rtattr.rta_type` -
     /// Values specify neighbor table attributes
-    Nda, libc::c_ushort, RtaType,
+    Nda, libc::c_ushort,
     Unspec => libc::NDA_UNSPEC,
     Dst => libc::NDA_DST,
     Lladdr => libc::NDA_LLADDR,

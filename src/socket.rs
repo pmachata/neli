@@ -472,9 +472,9 @@ pub mod tokio {
     //! This module contains a struct that wraps `NlSocket` for async IO.
     use super::*;
 
+    use ::tokio::prelude::{Async, AsyncRead, Stream};
+    use ::tokio::reactor::PollEvented2;
     use mio::{self, Evented};
-    use tokio::prelude::{Async, AsyncRead, Stream};
-    use tokio::reactor::PollEvented2;
 
     /// Tokio-enabled Netlink socket struct
     pub struct NlSocket<T, P> {

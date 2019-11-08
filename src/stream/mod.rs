@@ -1,4 +1,4 @@
 #[cfg(feature = "async")]
-mod async;
+mod asynchronous;
 #[cfg(feature = "async")]
-pub use self::async::{NetlinkStream, NetlinkStreamConnector};
+pub use self::asynchronous::{NetlinkStream, NetlinkStreamConnector};

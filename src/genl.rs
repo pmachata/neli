@@ -14,9 +14,11 @@
 
 use buffering::{StreamReadBuffer, StreamWriteBuffer};
 
-use consts::{Cmd, NlAttrType};
-use nlattr::{AttrHandle, Nlattr};
-use {DeError, Nl, SerError};
+use crate::{
+    consts::{Cmd, NlAttrType},
+    nlattr::{AttrHandle, Nlattr},
+    DeError, Nl, SerError,
+};
 
 /// Struct representing generic netlink header and payload
 #[derive(Debug, PartialEq)]
@@ -115,9 +117,11 @@ mod test {
 
     use byteorder::{NativeEndian, WriteBytesExt};
 
-    use consts::{CtrlAttr, CtrlCmd, NlFamily};
-    use socket::NlSocket;
-    use utils::U32Bitmask;
+    use crate::{
+        consts::{CtrlAttr, CtrlCmd, NlFamily},
+        socket::NlSocket,
+        utils::U32Bitmask,
+    };
 
     #[test]
     pub fn test_serialize() {

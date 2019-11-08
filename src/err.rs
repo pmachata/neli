@@ -24,9 +24,11 @@ use std::string;
 use buffering::{StreamReadBuffer, StreamWriteBuffer};
 use libc;
 
-use consts::NlType;
-use nl::{NlEmpty, Nlmsghdr};
-use Nl;
+use crate::{
+    consts::NlType,
+    nl::{NlEmpty, Nlmsghdr},
+    Nl,
+};
 
 macro_rules! try_err_compat {
     ( $err_name:ident, $( $from_err_name:path ),* ) => {
