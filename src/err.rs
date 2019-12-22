@@ -18,9 +18,7 @@ use std::{
     self,
     error::Error,
     fmt::{self, Display},
-    io,
-    str,
-    string,
+    io, str, string,
 };
 
 use bytes::{Bytes, BytesMut};
@@ -84,9 +82,7 @@ where
 
     fn type_size() -> Option<usize> {
         Nlmsghdr::<T, NlEmpty>::type_size()
-            .and_then(|nhdr_sz| {
-                libc::c_int::type_size().map(|cint| cint + nhdr_sz)
-            })
+            .and_then(|nhdr_sz| libc::c_int::type_size().map(|cint| cint + nhdr_sz))
     }
 }
 
@@ -142,7 +138,7 @@ impl Error for NlError {
 /// Serialization error
 #[derive(Debug)]
 pub enum SerError {
-    /// Abitrary error message 
+    /// Abitrary error message
     Msg(String, BytesMut),
     /// The end of the buffer was reached before serialization finished
     UnexpectedEOB(BytesMut),
@@ -154,75 +150,72 @@ pub enum SerError {
 
 impl SerError {
     /// Create a new error with the given message as description
-    pub fn new<D>(msg: D, bytes: BytesMut) -> Self where D: Display {
+    pub fn new<D>(msg: D, bytes: BytesMut) -> Self
+    where
+        D: Display,
+    {
         SerError::Msg(msg.to_string(), bytes)
     }
 
     /// Reconstruct `BytesMut` at current level to bubble error up
     pub fn reconstruct(self, start: Option<BytesMut>, end: Option<BytesMut>) -> Self {
         match (start, end) {
-            (Some(mut s), Some(e)) => {
-                match self {
-                    SerError::BufferNotFilled(b) => {
-                        s.unsplit(b);
-                        s.unsplit(e);
-                        SerError::BufferNotFilled(s)
-                    }
-                    SerError::UnexpectedEOB(b) => {
-                        s.unsplit(b);
-                        s.unsplit(e);
-                        SerError::UnexpectedEOB(s)
-                    }
-                    SerError::Msg(m, b) => {
-                        s.unsplit(b);
-                        s.unsplit(e);
-                        SerError::Msg(m, s)
-                    }
-                    SerError::IOError(err, b) => {
-                        s.unsplit(b);
-                        s.unsplit(e);
-                        SerError::IOError(err, s)
-                    }
+            (Some(mut s), Some(e)) => match self {
+                SerError::BufferNotFilled(b) => {
+                    s.unsplit(b);
+                    s.unsplit(e);
+                    SerError::BufferNotFilled(s)
+                }
+                SerError::UnexpectedEOB(b) => {
+                    s.unsplit(b);
+                    s.unsplit(e);
+                    SerError::UnexpectedEOB(s)
+                }
+                SerError::Msg(m, b) => {
+                    s.unsplit(b);
+                    s.unsplit(e);
+                    SerError::Msg(m, s)
+                }
+                SerError::IOError(err, b) => {
+                    s.unsplit(b);
+                    s.unsplit(e);
+                    SerError::IOError(err, s)
                 }
             },
-            (Some(mut s), _) => {
-                match self {
-                    SerError::BufferNotFilled(b) => {
-                        s.unsplit(b);
-                        SerError::BufferNotFilled(s)
-                    }
-                    SerError::UnexpectedEOB(b) => {
-                        s.unsplit(b);
-                        SerError::UnexpectedEOB(s)
-                    }
-                    SerError::Msg(m, b) => {
-                        s.unsplit(b);
-                        SerError::Msg(m, s)
-                    }
-                    SerError::IOError(err, b) => {
-                        s.unsplit(b);
-                        SerError::IOError(err, s)
-                    }
+            (Some(mut s), _) => match self {
+                SerError::BufferNotFilled(b) => {
+                    s.unsplit(b);
+                    SerError::BufferNotFilled(s)
+                }
+                SerError::UnexpectedEOB(b) => {
+                    s.unsplit(b);
+                    SerError::UnexpectedEOB(s)
+                }
+                SerError::Msg(m, b) => {
+                    s.unsplit(b);
+                    SerError::Msg(m, s)
+                }
+                SerError::IOError(err, b) => {
+                    s.unsplit(b);
+                    SerError::IOError(err, s)
                 }
             },
-            (_, Some(e)) => {
-                match self {
-                    SerError::BufferNotFilled(mut b) => {
-                        b.unsplit(e);
-                        SerError::BufferNotFilled(b)
-                    }
-                    SerError::UnexpectedEOB(mut b) => {
-                        b.unsplit(e);
-                        SerError::UnexpectedEOB(b)
-                    }
-                    SerError::Msg(m, mut b) => {
-                        b.unsplit(e);
-                        SerError::Msg(m, b)
-                    }
-                    SerError::IOError(err, mut b) => {
-                        b.unsplit(e);
-                        SerError::IOError(err, b)
-                    }
+            (_, Some(e)) => match self {
+                SerError::BufferNotFilled(mut b) => {
+                    b.unsplit(e);
+                    SerError::BufferNotFilled(b)
+                }
+                SerError::UnexpectedEOB(mut b) => {
+                    b.unsplit(e);
+                    SerError::UnexpectedEOB(b)
+                }
+                SerError::Msg(m, mut b) => {
+                    b.unsplit(e);
+                    SerError::Msg(m, b)
+                }
+                SerError::IOError(err, mut b) => {
+                    b.unsplit(e);
+                    SerError::IOError(err, b)
                 }
             },
             (_, _) => self,
@@ -242,7 +235,7 @@ impl Display for SerError {
             SerError::BufferNotFilled(_) => write!(
                 f,
                 "The number of bytes written to the buffer did not fill the \
-                given space",
+                 given space",
             ),
         }
     }
@@ -253,7 +246,7 @@ impl Error for SerError {}
 /// Deserialization error
 #[derive(Debug)]
 pub enum DeError {
-    /// Abitrary error message 
+    /// Abitrary error message
     Msg(String),
     /// The end of the buffer was reached before deserialization finished
     UnexpectedEOB,
@@ -267,7 +260,10 @@ pub enum DeError {
 
 impl DeError {
     /// Create new error from `&str`
-    pub fn new<D>(s: D) -> Self where D: Display {
+    pub fn new<D>(s: D) -> Self
+    where
+        D: Display,
+    {
         DeError::Msg(s.to_string())
     }
 }
@@ -287,20 +283,11 @@ impl Display for DeError {
             DeError::UnexpectedEOB => write!(
                 f,
                 "The buffer was not large enough to complete the deserialize \
-                operation",
+                 operation",
             ),
-            DeError::BufferNotParsed => write!(
-                f,
-                "Unparsed data left in buffer",
-            ),
-            DeError::NullError => write!(
-                f,
-                "A null was found before the end of the buffer",
-            ),
-            DeError::NoNullError => write!(
-                f,
-                "No terminating null byte was found in the buffer",
-            ),
+            DeError::BufferNotParsed => write!(f, "Unparsed data left in buffer",),
+            DeError::NullError => write!(f, "A null was found before the end of the buffer",),
+            DeError::NoNullError => write!(f, "No terminating null byte was found in the buffer",),
         }
     }
 }

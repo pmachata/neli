@@ -103,6 +103,4 @@ impl_var!(
     Append => libc::NLM_F_APPEND as u16
 );
 
-impl_flags!(
-    NlmFFlags, NlmF, u16
-);
+impl_flags!(NlmFFlags, NlmF, u16);

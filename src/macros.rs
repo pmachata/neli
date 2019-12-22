@@ -11,7 +11,7 @@ macro_rules! drive_serialize {
             Ok(b) => {
                 b.unsplit($buffer);
                 (b, size)
-            },
+            }
             Err(e) => return Err(e.reconstruct(None, Some($buffer))),
         }
     }};
@@ -27,7 +27,7 @@ macro_rules! drive_serialize {
                 $buffer.unsplit(b);
                 $buffer.unsplit(end);
                 ($buffer, $pos + size)
-            },
+            }
             Err(e) => return Err(e.reconstruct(Some($buffer), Some(end))),
         }
     }};
@@ -41,7 +41,7 @@ macro_rules! drive_serialize {
             Ok(b) => {
                 $buffer.unsplit(b);
                 ($buffer, $pos + size)
-            },
+            }
             Err(e) => return Err(e.reconstruct(Some($buffer), None)),
         }
     }};
@@ -82,23 +82,23 @@ macro_rules! deserialize_type_size {
     ($de_type:ty => $de_size:ident) => {
         match <$de_type>::$de_size() {
             Some(s) => s,
-            None => return Err($crate::err::DeError::Msg(
-                format!(
+            None => {
+                return Err($crate::err::DeError::Msg(format!(
                     "Type {} has no static size associated with it",
                     stringify!($de_type),
-                )
-            )),
+                )))
+            }
         }
     };
     ($de_type:ty) => {
         match (<$de_type>::type_asize(), <$de_type>::type_size()) {
             (Some(a), Some(s)) => a - s,
-            (_, _) => return Err($crate::err::DeError::Msg(
-                format!(
+            (_, _) => {
+                return Err($crate::err::DeError::Msg(format!(
                     "Type {} has no static size associated with it",
                     stringify!($de_type),
-                )
-            )),
+                )))
+            }
         }
     };
 }
@@ -174,15 +174,14 @@ macro_rules! deserialize {
 
 macro_rules! get_int {
     ($bytes:ident, $get_int:ident) => {{
-        let size = Self::type_size()
-            .expect("Integers have static size");
+        let size = Self::type_size().expect("Integers have static size");
         if $bytes.len() < size {
             return Err($crate::err::DeError::UnexpectedEOB);
         } else if $bytes.len() > size {
             return Err($crate::err::DeError::BufferNotParsed);
         }
         byteorder::NativeEndian::$get_int($bytes.as_ref())
-    }}
+    }};
 }
 
 macro_rules! put_int {
@@ -195,5 +194,5 @@ macro_rules! put_int {
         }
         byteorder::NativeEndian::$put_int($bytes.as_mut(), $to_ser);
         $bytes
-    }}
+    }};
 }

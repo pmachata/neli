@@ -84,10 +84,7 @@ pub mod nl;
 //pub mod stream;
 mod utils;
 
-use std::{
-    io::Write,
-    mem, str,
-};
+use std::{io::Write, mem, str};
 
 use byteorder::ByteOrder;
 
@@ -132,7 +129,10 @@ pub trait Nl: Sized {
     /// Pad the data serialized data structure to alignment
     fn pad(&self, mut mem: BytesMut) -> Result<BytesMut, SerError> {
         let padding_len = self.asize() - self.size();
-        if let Err(e) = mem.as_mut().write_all(&[0; libc::NLA_ALIGNTO as usize][..padding_len]) {
+        if let Err(e) = mem
+            .as_mut()
+            .write_all(&[0; libc::NLA_ALIGNTO as usize][..padding_len])
+        {
             Err(SerError::IOError(e, mem))
         } else {
             Ok(mem)
@@ -161,8 +161,7 @@ impl Nl for u8 {
     }
 
     fn deserialize(mem: Bytes) -> Result<Self, DeError> {
-        let size = Self::type_size()
-            .expect("Integers have static size");
+        let size = Self::type_size().expect("Integers have static size");
         if mem.len() < size {
             return Err(DeError::UnexpectedEOB);
         } else if mem.len() > size {
@@ -312,7 +311,7 @@ impl<'a> Nl for &'a str {
                 assert_eq!(write_size + 1, self.size());
                 mem.as_mut()[write_size] = 0;
                 Ok(mem)
-            },
+            }
             Err(e) => Err(SerError::IOError(e, mem)),
         }
     }
@@ -336,9 +335,7 @@ impl<'a> NlSlice<'a> for &'a str {
             Some(0) => (),
             _ => return Err(DeError::NullError),
         };
-        str::from_utf8(&mem[..mem.len() - 1])
-            .map_err(|e| DeError::new(e.to_string()))
-
+        str::from_utf8(&mem[..mem.len() - 1]).map_err(|e| DeError::new(e.to_string()))
     }
 }
 

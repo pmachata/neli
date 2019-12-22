@@ -111,7 +111,7 @@ macro_rules! impl_var {
             fn size(&self) -> usize {
                 std::mem::size_of::<$ty>()
             }
-            
+
             fn type_size() -> Option<usize> {
                 Some(std::mem::size_of::<$ty>())
             }
@@ -228,7 +228,10 @@ macro_rules! impl_flags {
         }
 
         impl $crate::Nl for $name {
-            fn serialize(&self, mem: bytes::BytesMut) -> Result<bytes::BytesMut, $crate::err::SerError> {
+            fn serialize(
+                &self,
+                mem: bytes::BytesMut,
+            ) -> Result<bytes::BytesMut, $crate::err::SerError> {
                 let int_rep = self.0.iter().fold(0, |acc, next| {
                     let result: $bin_type = next.into();
                     acc | result
@@ -256,5 +259,5 @@ macro_rules! impl_flags {
                 Some(std::mem::size_of::<$bin_type>())
             }
         }
-    }
+    };
 }

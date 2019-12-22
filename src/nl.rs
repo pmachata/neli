@@ -118,7 +118,7 @@ pub struct NlEmpty;
 
 impl Nl for NlEmpty {
     #[inline]
-    fn serialize(&self, mem: BytesMut)-> Result<BytesMut, SerError> {
+    fn serialize(&self, mem: BytesMut) -> Result<BytesMut, SerError> {
         Ok(mem)
     }
 
@@ -146,12 +146,18 @@ mod test {
 
     use byteorder::{NativeEndian, WriteBytesExt};
 
-    use crate::consts::nl::{Nlmsg, NlmF};
+    use crate::consts::nl::{NlmF, Nlmsg};
 
     #[test]
     fn test_nlmsghdr_serialize() {
-        let nl =
-            Nlmsghdr::<Nlmsg, NlEmpty>::new(None, Nlmsg::Noop, NlmFFlags::empty(), None, None, NlEmpty);
+        let nl = Nlmsghdr::<Nlmsg, NlEmpty>::new(
+            None,
+            Nlmsg::Noop,
+            NlmFFlags::empty(),
+            None,
+            None,
+            NlEmpty,
+        );
         let mut mem = BytesMut::from(vec![0u8; nl.asize()]);
         mem = nl.serialize(mem).unwrap();
         let mut s = [0u8; 16];
