@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fmt::{self, Display},
-    ops::{AddAssign, BitOr, Deref, Sub, SubAssign},
+    ops::{BitOr, BitOrAssign, Deref},
 };
 
 #[derive(Debug)]
@@ -25,6 +25,7 @@ impl Display for BitRepError {
 }
 
 /// Struct representing a single bit flag
+#[derive(Copy, Clone)]
 pub struct U32BitFlag(u32);
 
 impl U32BitFlag {
@@ -94,43 +95,15 @@ impl BitOr<U32Bitmask> for U32BitFlag {
     }
 }
 
-impl AddAssign<U32BitFlag> for U32Bitmask {
-    fn add_assign(&mut self, rhs: U32BitFlag) {
-        self.0 |= *U32Bitmask::from(rhs)
+impl<'a> BitOrAssign<&'a U32BitFlag> for U32Bitmask {
+    fn bitor_assign(&mut self, rhs: &U32BitFlag) {
+        self.0 |= *U32Bitmask::from(*rhs)
     }
 }
 
-impl<'a> AddAssign<U32BitFlag> for &'a mut U32Bitmask {
-    fn add_assign(&mut self, rhs: U32BitFlag) {
-        self.0 |= *U32Bitmask::from(rhs)
-    }
-}
-
-impl Sub<U32Bitmask> for U32Bitmask {
-    type Output = U32Bitmask;
-
-    fn sub(self, rhs: U32Bitmask) -> Self::Output {
-        U32Bitmask::from(self.0 & !*rhs)
-    }
-}
-
-impl Sub<U32BitFlag> for U32Bitmask {
-    type Output = U32Bitmask;
-
-    fn sub(self, rhs: U32BitFlag) -> Self::Output {
-        self - rhs.into_bitmask()
-    }
-}
-
-impl SubAssign<U32BitFlag> for U32Bitmask {
-    fn sub_assign(&mut self, rhs: U32BitFlag) {
-        self.0 &= !*U32Bitmask::from(rhs)
-    }
-}
-
-impl<'a> SubAssign<U32BitFlag> for &'a mut U32Bitmask {
-    fn sub_assign(&mut self, rhs: U32BitFlag) {
-        self.0 &= !*U32Bitmask::from(rhs)
+impl<'a> BitOrAssign<&'a U32BitFlag> for &'a mut U32Bitmask {
+    fn bitor_assign(&mut self, rhs: &U32BitFlag) {
+        self.0 |= *U32Bitmask::from(*rhs)
     }
 }
 

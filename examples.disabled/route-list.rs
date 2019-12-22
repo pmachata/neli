@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let nlhdr = {
         let len = None;
         let nl_type = Rtm::Getroute;
-        let flags = vec![NlmF::Request, NlmF::Dump];
+        let flags = NlmFFlags::new(&[NlmF::Request, NlmF::Dump]);
         let seq = None;
         let pid = None;
         let payload = rtmsg;

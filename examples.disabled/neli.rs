@@ -22,7 +22,7 @@ fn main() {
     let nlmsg = neli::nl::Nlmsghdr::new(
         None,
         neli::consts::GenlId::Ctrl,
-        Vec::new(),
+        NlmFFlags::empty(),
         None,
         None,
         Genlmsghdr::new(neli::consts::CtrlCmd::Unspec, 2, Vec::new()).unwrap(),

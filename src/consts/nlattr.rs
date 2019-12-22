@@ -1,5 +1,8 @@
+use bytes::{Bytes, BytesMut};
+
 use crate::{
     consts::netfilter::{NfLogAttr, NfLogCfg},
+    err::{DeError, SerError},
     Nl,
 };
 
@@ -53,20 +56,20 @@ impl From<u16> for Index {
 }
 
 impl Nl for Index {
-    fn serialize(&self, buf: &mut crate::StreamWriteBuffer) -> Result<(), crate::SerError> {
-        self.0.serialize(buf)?;
-        Ok(())
+    fn serialize(&self, mem: BytesMut) -> Result<BytesMut, SerError> {
+        self.0.serialize(mem)
     }
 
-    fn deserialize<B>(buf: &mut crate::StreamReadBuffer<B>) -> Result<Self, crate::DeError>
-    where
-        B: AsRef<[u8]>,
-    {
-        Ok(Index(u16::deserialize(buf)?))
+    fn deserialize(mem: Bytes) -> Result<Self, DeError> {
+        Ok(Index::from(u16::deserialize(mem)?))
     }
 
     fn size(&self) -> usize {
         std::mem::size_of::<u16>()
+    }
+
+    fn type_size() -> Option<usize> {
+        Some(std::mem::size_of::<u16>())
     }
 }
 

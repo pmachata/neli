@@ -1,4 +1,4 @@
-extern crate neli;
+use bytes::Bytes;
 use neli::{
     consts::{CtrlAttr, CtrlCmd, GenlId, NlFamily, NlmF, Nlmsg},
     err::NlError,
@@ -22,7 +22,7 @@ fn main() -> Result<(), NlError> {
     let nlhdr = {
         let len = None;
         let nl_type = GenlId::Ctrl;
-        let flags = vec![NlmF::Request, NlmF::Dump];
+        let flags = NlmFFlags::new(&[NlmF::Request, NlmF::Dump]);
         let seq = None;
         let pid = None;
         let payload = genlhdr;
@@ -55,8 +55,8 @@ fn main() -> Result<(), NlError> {
                     println!("{}", name);
                 }
                 CtrlAttr::FamilyId => {
-                    let mut mem = StreamReadBuffer::new(&attr.payload);
-                    let id = u16::deserialize(&mut mem)?;
+                    let mem = Bytes::new(&attr.payload);
+                    let id = u16::deserialize(mem)?;
                     println!("\tID: 0x{:x}", id);
                 }
                 _ => {}

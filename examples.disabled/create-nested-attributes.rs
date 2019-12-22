@@ -50,13 +50,13 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let nlmsg = Nlmsghdr::new(
         None,
         consts::Nlmsg::Noop,
-        vec![consts::NlmF::Request],
+        NlmFFlags::new(&[consts::NlmF::Request]),
         None,
         None,
         genlmsg,
     );
-    let mut buffer = neli::StreamWriteBuffer::new_growable(Some(nlmsg.asize()));
-    nlmsg.serialize(&mut buffer)?;
+    let mut buffer = BytesMut::with_capacity(nlmsg.asize());
+    nlmsg.serialize(buffer)?;
     println!("Serialized heterogeneous attributes: {:?}", buffer.as_ref());
     Ok(())
 }

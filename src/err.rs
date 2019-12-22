@@ -14,14 +14,16 @@
 //! no ACK received, one for a bad PID that does not correspond to that assigned to the socket, or
 //! one for a bad sequence number that does not correspond to the request sequence number.
 
-use std;
-use std::error::Error;
-use std::fmt::{self, Display};
-use std::io;
-use std::str;
-use std::string;
+use std::{
+    self,
+    error::Error,
+    fmt::{self, Display},
+    io,
+    str,
+    string,
+};
 
-use buffering::{StreamReadBuffer, StreamWriteBuffer};
+use bytes::{Bytes, BytesMut};
 use libc;
 
 use crate::{
@@ -31,11 +33,11 @@ use crate::{
 };
 
 macro_rules! try_err_compat {
-    ( $err_name:ident, $( $from_err_name:path ),* ) => {
+    ($err_name:ident, $($from_err_name:path),*) => {
         $(
             impl From<$from_err_name> for $err_name {
                 fn from(v: $from_err_name) -> Self {
-                    $err_name::new(v.description())
+                    $err_name::new(v)
                 }
             }
         )*
@@ -55,27 +57,36 @@ impl<T> Nl for Nlmsgerr<T>
 where
     T: NlType,
 {
-    fn serialize(&self, mem: &mut StreamWriteBuffer) -> Result<(), SerError> {
-        self.error.serialize(mem)?;
-        self.nlmsg.serialize(mem)?;
-        self.pad(mem)?;
-        Ok(())
+    fn serialize(&self, mem: BytesMut) -> Result<BytesMut, SerError> {
+        Ok(serialize! {
+            PAD self;
+            mem;
+            self.error, size;
+            self.nlmsg, size
+        })
     }
 
-    fn deserialize<B>(mem: &mut StreamReadBuffer<B>) -> Result<Self, DeError>
-    where
-        B: AsRef<[u8]>,
-    {
-        let nlmsg = Nlmsgerr {
-            error: libc::c_int::deserialize(mem)?,
-            nlmsg: Nlmsghdr::<T, NlEmpty>::deserialize(mem)?,
-        };
-        nlmsg.strip(mem)?;
-        Ok(nlmsg)
+    fn deserialize(mem: Bytes) -> Result<Self, DeError> {
+        Ok(deserialize! {
+            STRIP Self;
+            mem;
+            Nlmsgerr {
+                error: libc::c_int => deserialize_type_size!(libc::c_int => type_size),
+                nlmsg: Nlmsghdr<T, NlEmpty> => mem.len() - libc::c_int::type_size()
+                    .expect("Integers have static sizes")
+            } => mem.len()
+        })
     }
 
     fn size(&self) -> usize {
         self.error.size() + self.nlmsg.size()
+    }
+
+    fn type_size() -> Option<usize> {
+        Nlmsghdr::<T, NlEmpty>::type_size()
+            .and_then(|nhdr_sz| {
+                libc::c_int::type_size().map(|cint| cint + nhdr_sz)
+            })
     }
 }
 
@@ -95,7 +106,7 @@ pub enum NlError {
 try_err_compat!(NlError, io::Error, SerError, DeError);
 
 impl NlError {
-    /// Create new error from `&str`
+    /// Create new error from a data type implementing `Display`
     pub fn new<D>(s: D) -> Self
     where
         D: Display,
@@ -130,37 +141,134 @@ impl Error for NlError {
 
 /// Serialization error
 #[derive(Debug)]
-pub struct SerError(String);
+pub enum SerError {
+    /// Abitrary error message 
+    Msg(String, BytesMut),
+    /// The end of the buffer was reached before serialization finished
+    UnexpectedEOB(BytesMut),
+    /// Serialization did not fill the buffer
+    BufferNotFilled(BytesMut),
+    /// Wrapper for an `io::Error`
+    IOError(io::Error, BytesMut),
+}
 
 impl SerError {
     /// Create a new error with the given message as description
-    pub fn new<T: ToString>(msg: T) -> Self {
-        SerError(msg.to_string())
+    pub fn new<D>(msg: D, bytes: BytesMut) -> Self where D: Display {
+        SerError::Msg(msg.to_string(), bytes)
+    }
+
+    /// Reconstruct `BytesMut` at current level to bubble error up
+    pub fn reconstruct(self, start: Option<BytesMut>, end: Option<BytesMut>) -> Self {
+        match (start, end) {
+            (Some(mut s), Some(e)) => {
+                match self {
+                    SerError::BufferNotFilled(b) => {
+                        s.unsplit(b);
+                        s.unsplit(e);
+                        SerError::BufferNotFilled(s)
+                    }
+                    SerError::UnexpectedEOB(b) => {
+                        s.unsplit(b);
+                        s.unsplit(e);
+                        SerError::UnexpectedEOB(s)
+                    }
+                    SerError::Msg(m, b) => {
+                        s.unsplit(b);
+                        s.unsplit(e);
+                        SerError::Msg(m, s)
+                    }
+                    SerError::IOError(err, b) => {
+                        s.unsplit(b);
+                        s.unsplit(e);
+                        SerError::IOError(err, s)
+                    }
+                }
+            },
+            (Some(mut s), _) => {
+                match self {
+                    SerError::BufferNotFilled(b) => {
+                        s.unsplit(b);
+                        SerError::BufferNotFilled(s)
+                    }
+                    SerError::UnexpectedEOB(b) => {
+                        s.unsplit(b);
+                        SerError::UnexpectedEOB(s)
+                    }
+                    SerError::Msg(m, b) => {
+                        s.unsplit(b);
+                        SerError::Msg(m, s)
+                    }
+                    SerError::IOError(err, b) => {
+                        s.unsplit(b);
+                        SerError::IOError(err, s)
+                    }
+                }
+            },
+            (_, Some(e)) => {
+                match self {
+                    SerError::BufferNotFilled(mut b) => {
+                        b.unsplit(e);
+                        SerError::BufferNotFilled(b)
+                    }
+                    SerError::UnexpectedEOB(mut b) => {
+                        b.unsplit(e);
+                        SerError::UnexpectedEOB(b)
+                    }
+                    SerError::Msg(m, mut b) => {
+                        b.unsplit(e);
+                        SerError::Msg(m, b)
+                    }
+                    SerError::IOError(err, mut b) => {
+                        b.unsplit(e);
+                        SerError::IOError(err, b)
+                    }
+                }
+            },
+            (_, _) => self,
+        }
     }
 }
-
-try_err_compat!(SerError, io::Error);
 
 impl Display for SerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        match *self {
+            SerError::Msg(ref s, _) => write!(f, "{}", s),
+            SerError::IOError(ref e, _) => write!(f, "IO error while serializing: {}", e),
+            SerError::UnexpectedEOB(_) => write!(
+                f,
+                "The buffer was too small for the requested serialization operation",
+            ),
+            SerError::BufferNotFilled(_) => write!(
+                f,
+                "The number of bytes written to the buffer did not fill the \
+                given space",
+            ),
+        }
     }
 }
 
-impl Error for SerError {
-    fn description(&self) -> &str {
-        self.0.as_str()
-    }
-}
+impl Error for SerError {}
 
 /// Deserialization error
 #[derive(Debug)]
-pub struct DeError(String);
+pub enum DeError {
+    /// Abitrary error message 
+    Msg(String),
+    /// The end of the buffer was reached before deserialization finished
+    UnexpectedEOB,
+    /// Deserialization did not fill the buffer
+    BufferNotParsed,
+    /// A null byte was found before the end of the serialized `String`
+    NullError,
+    /// A null byte was not found at the end of the serialized `String`
+    NoNullError,
+}
 
 impl DeError {
     /// Create new error from `&str`
-    pub fn new(s: &str) -> Self {
-        DeError(s.to_string())
+    pub fn new<D>(s: D) -> Self where D: Display {
+        DeError::Msg(s.to_string())
     }
 }
 
@@ -174,12 +282,27 @@ try_err_compat!(
 
 impl Display for DeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        match *self {
+            DeError::Msg(ref s) => write!(f, "{}", s),
+            DeError::UnexpectedEOB => write!(
+                f,
+                "The buffer was not large enough to complete the deserialize \
+                operation",
+            ),
+            DeError::BufferNotParsed => write!(
+                f,
+                "Unparsed data left in buffer",
+            ),
+            DeError::NullError => write!(
+                f,
+                "A null was found before the end of the buffer",
+            ),
+            DeError::NoNullError => write!(
+                f,
+                "No terminating null byte was found in the buffer",
+            ),
+        }
     }
 }
 
-impl Error for DeError {
-    fn description(&self) -> &str {
-        self.0.as_str()
-    }
-}
+impl Error for DeError {}

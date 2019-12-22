@@ -102,3 +102,7 @@ impl_var!(
     Create => libc::NLM_F_CREATE as u16,
     Append => libc::NLM_F_APPEND as u16
 );
+
+impl_flags!(
+    NlmFFlags, NlmF, u16
+);

@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Nlattr::new(None, NfLogCfg::Cmd, LogCmd::Bind)?,
     ];
     let req = LogConfigReq::new(libc::AF_INET, 10, cmds);
-    let flags = vec![NlmF::Request, NlmF::Ack];
+    let flags = NlmFFlags::new(&[NlmF::Request, NlmF::Ack]);
     let msg = Nlmsghdr::new(None, NetfilterMsg::LogConfig, flags, None, None, req);
     // Send the request to the kernel
     socket.send_nl(msg)?;
