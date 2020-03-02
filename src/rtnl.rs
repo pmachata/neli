@@ -651,6 +651,7 @@ impl Nl for Tcmsg {
             + self.tcm_handle.size()
             + self.tcm_parent.size()
             + self.tcm_info.size()
+            + self.rtattrs.size()
     }
 }
 
