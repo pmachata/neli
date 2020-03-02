@@ -277,7 +277,11 @@ impl_var_trait!(
     Rate => libc::TCA_RATE,
     Fcnt => libc::TCA_FCNT,
     Stats2 => libc::TCA_STATS2,
-    Stab => libc::TCA_STAB
+    Stab => libc::TCA_STAB,
+    Pad => libc::TCA_PAD,
+    DumpInvisible => libc::TCA_DUMP_INVISIBLE,
+    Chain => libc::TCA_CHAIN,
+    HwOffload => libc::TCA_HW_OFFLOAD
 );
 
 impl_var_trait!(
